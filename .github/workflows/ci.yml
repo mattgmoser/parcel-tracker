@@ -8,6 +8,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # A test that never exits is a test that failed. Without this a hung suite
+    # sits in_progress for hours and every consumer of this signal waits with it.
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
