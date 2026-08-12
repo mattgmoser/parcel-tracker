@@ -7,6 +7,32 @@ const NEXT_STATUS: Record<ParcelStatus, ParcelStatus | null> = {
   delivered: null,
 };
 
+export class ParcelValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ParcelValidationError";
+  }
+}
+
+/**
+ * Validate the raw input for a new parcel.
+ * Throws {@link ParcelValidationError} if weightKg is missing, not a number,
+ * or not greater than zero.
+ */
+export function validateNewParcel(input: Record<string, unknown>): NewParcel {
+  const { weightKg } = input;
+  if (weightKg === undefined || weightKg === null) {
+    throw new ParcelValidationError("weightKg is required");
+  }
+  if (typeof weightKg !== "number" || !Number.isFinite(weightKg)) {
+    throw new ParcelValidationError("weightKg must be a number");
+  }
+  if (weightKg <= 0) {
+    throw new ParcelValidationError("weightKg must be greater than zero");
+  }
+  return input as unknown as NewParcel;
+}
+
 /**
  * Book a new parcel into the network.
  *

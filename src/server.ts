@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { advanceParcel, createParcel, getParcel, quote } from "./parcels";
+import { advanceParcel, createParcel, getParcel, ParcelValidationError, quote, validateNewParcel } from "./parcels";
 import { all } from "./store";
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -23,7 +23,16 @@ export const server = createServer((req, res) => {
     req.on("data", (chunk) => (body += chunk));
     req.on("end", () => {
       const input = JSON.parse(body || "{}");
-      const parcel = createParcel(input);
+      let validated;
+      try {
+        validated = validateNewParcel(input);
+      } catch (err) {
+        if (err instanceof ParcelValidationError) {
+          return json(res, 400, { error: err.message });
+        }
+        throw err;
+      }
+      const parcel = createParcel(validated);
       json(res, 201, { parcel, quotePence: quote(parcel) });
     });
     return;

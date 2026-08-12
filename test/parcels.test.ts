@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
-import { beforeEach, describe, it } from "node:test";
-import { advanceParcel, createParcel, getParcel, quote } from "../src/parcels";
+import { afterEach, beforeEach, describe, it } from "node:test";
+import { advanceParcel, createParcel, getParcel, ParcelValidationError, quote, validateNewParcel } from "../src/parcels";
+import { server } from "../src/server";
 import { reset } from "../src/store";
 
 beforeEach(() => reset());
@@ -50,5 +51,93 @@ describe("quote", () => {
   it("charges handling plus a per-kilo rate", () => {
     const parcel = createParcel({ destination: "Derby", weightKg: 2.5 });
     assert.equal(quote(parcel), 250 + 300);
+  });
+});
+
+describe("validateNewParcel", () => {
+  it("returns the input unchanged when weightKg is a positive number", () => {
+    const input = { destination: "Bristol", weightKg: 5 };
+    assert.deepEqual(validateNewParcel(input), input);
+  });
+
+  it("throws ParcelValidationError when weightKg is missing", () => {
+    assert.throws(
+      () => validateNewParcel({ destination: "Bristol" }),
+      (err) => err instanceof ParcelValidationError && /required/i.test(err.message),
+    );
+  });
+
+  it("throws ParcelValidationError when weightKg is a string", () => {
+    assert.throws(
+      () => validateNewParcel({ destination: "Bristol", weightKg: "heavy" }),
+      (err) => err instanceof ParcelValidationError && /number/i.test(err.message),
+    );
+  });
+
+  it("throws ParcelValidationError when weightKg is zero", () => {
+    assert.throws(
+      () => validateNewParcel({ destination: "Bristol", weightKg: 0 }),
+      (err) => err instanceof ParcelValidationError && /greater than zero/i.test(err.message),
+    );
+  });
+
+  it("throws ParcelValidationError when weightKg is negative", () => {
+    assert.throws(
+      () => validateNewParcel({ destination: "Bristol", weightKg: -1 }),
+      (err) => err instanceof ParcelValidationError && /greater than zero/i.test(err.message),
+    );
+  });
+});
+
+describe("POST /parcels – weightKg validation", () => {
+  // Start the server on an OS-assigned port and close it after the suite.
+  let baseUrl: string;
+
+  beforeEach(() => {
+    server.listen(0);
+    const addr = server.address() as { port: number };
+    baseUrl = `http://localhost:${addr.port}`;
+  });
+
+  afterEach(() => {
+    server.close();
+  });
+
+  async function post(body: unknown): Promise<{ status: number; data: Record<string, unknown> }> {
+    const res = await fetch(`${baseUrl}/parcels`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    return { status: res.status, data: (await res.json()) as Record<string, unknown> };
+  }
+
+  it("returns 201 when weightKg is a positive number", async () => {
+    const { status } = await post({ destination: "Exeter", weightKg: 3 });
+    assert.equal(status, 201);
+  });
+
+  it("returns 400 when weightKg is absent", async () => {
+    const { status, data } = await post({ destination: "Exeter" });
+    assert.equal(status, 400);
+    assert.match(data.error as string, /required/i);
+  });
+
+  it("returns 400 when weightKg is a string", async () => {
+    const { status, data } = await post({ destination: "Exeter", weightKg: "heavy" });
+    assert.equal(status, 400);
+    assert.match(data.error as string, /number/i);
+  });
+
+  it("returns 400 when weightKg is zero", async () => {
+    const { status, data } = await post({ destination: "Exeter", weightKg: 0 });
+    assert.equal(status, 400);
+    assert.match(data.error as string, /greater than zero/i);
+  });
+
+  it("returns 400 when weightKg is negative", async () => {
+    const { status, data } = await post({ destination: "Exeter", weightKg: -10 });
+    assert.equal(status, 400);
+    assert.match(data.error as string, /greater than zero/i);
   });
 });
