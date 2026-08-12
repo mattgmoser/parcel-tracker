@@ -8,10 +8,33 @@ const NEXT_STATUS: Record<ParcelStatus, ParcelStatus | null> = {
 };
 
 /**
+ * Validate the raw body sent to POST /parcels.
+ *
+ * Returns a human-readable error string when the payload is invalid, or
+ * undefined when everything is fine.
+ */
+export function validateNewParcel(input: unknown): string | undefined {
+  if (
+    typeof input !== "object" ||
+    input === null ||
+    !("weightKg" in input)
+  ) {
+    return "weightKg is required";
+  }
+  const { weightKg } = input as Record<string, unknown>;
+  if (typeof weightKg !== "number" || !isFinite(weightKg)) {
+    return "weightKg must be a number";
+  }
+  if (weightKg <= 0) {
+    return "weightKg must be greater than zero";
+  }
+  return undefined;
+}
+
+/**
  * Book a new parcel into the network.
  *
- * The carrier feed is trusted to send well-formed records, so the fields are
- * taken as given.
+ * Callers must validate the input with validateNewParcel before calling this.
  */
 export function createParcel(input: NewParcel): Parcel {
   return save({
