@@ -1,3 +1,4 @@
+// Responsible for managing the in-memory collection of parcels and providing CRUD operations on it.
 import type { Parcel } from "./types";
 
 /**
