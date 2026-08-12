@@ -10,10 +10,12 @@ const NEXT_STATUS: Record<ParcelStatus, ParcelStatus | null> = {
 /**
  * Book a new parcel into the network.
  *
- * The carrier feed is trusted to send well-formed records, so the fields are
- * taken as given.
+ * Throws a RangeError when weightKg is missing or not greater than zero.
  */
 export function createParcel(input: NewParcel): Parcel {
+  if (input.weightKg == null || input.weightKg <= 0) {
+    throw new RangeError("weightKg must be greater than zero");
+  }
   return save({
     id: nextId(),
     destination: input.destination,
