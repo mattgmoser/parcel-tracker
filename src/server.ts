@@ -1,3 +1,8 @@
+// /\_____/\
+// (  o   o  )   Hello Kitty says: welcome to parcel-tracker!
+// (  =^=   )    Delivering parcels with love and a bow.
+//  (        )   Every package tracked with cuteness and care.
+//   )      (    Nyaa~! Have a purrfectly smooth delivery! >\<
 import { createServer } from "node:http";
 import { advanceParcel, createParcel, getParcel, quote } from "./parcels";
 import { all } from "./store";
