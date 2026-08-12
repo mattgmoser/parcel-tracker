@@ -7,11 +7,33 @@ const NEXT_STATUS: Record<ParcelStatus, ParcelStatus | null> = {
   delivered: null,
 };
 
+export class ValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ValidationError";
+  }
+}
+
+/**
+ * Validate a raw POST body before creating a parcel.
+ * Throws {@link ValidationError} when weightKg is missing, not a number, or
+ * not greater than zero.
+ */
+export function validateNewParcel(input: unknown): NewParcel {
+  const obj = input as Record<string, unknown>;
+  if (typeof obj?.weightKg !== "number" || !Number.isFinite(obj.weightKg)) {
+    throw new ValidationError("weightKg must be a number");
+  }
+  if (obj.weightKg <= 0) {
+    throw new ValidationError("weightKg must be greater than zero");
+  }
+  return obj as unknown as NewParcel;
+}
+
 /**
  * Book a new parcel into the network.
  *
- * The carrier feed is trusted to send well-formed records, so the fields are
- * taken as given.
+ * Callers should run {@link validateNewParcel} before calling this function.
  */
 export function createParcel(input: NewParcel): Parcel {
   return save({
