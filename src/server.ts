@@ -23,8 +23,15 @@ export const server = createServer((req, res) => {
     req.on("data", (chunk) => (body += chunk));
     req.on("end", () => {
       const input = JSON.parse(body || "{}");
-      const parcel = createParcel(input);
-      json(res, 201, { parcel, quotePence: quote(parcel) });
+      try {
+        const parcel = createParcel(input);
+        json(res, 201, { parcel, quotePence: quote(parcel) });
+      } catch (err) {
+        if (err instanceof RangeError) {
+          return json(res, 400, { error: err.message });
+        }
+        throw err;
+      }
     });
     return;
   }
