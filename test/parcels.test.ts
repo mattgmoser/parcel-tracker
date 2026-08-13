@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
-import { advanceParcel, createParcel, getParcel, quote } from "../src/parcels";
+import { advanceParcel, createParcel, getParcel, quote, validateNewParcel, ValidationError } from "../src/parcels";
 import { reset } from "../src/store";
+import { server } from "../src/server";
+import type { IncomingMessage } from "node:http";
 
 beforeEach(() => reset());
 
@@ -51,4 +53,125 @@ describe("quote", () => {
     const parcel = createParcel({ destination: "Derby", weightKg: 2.5 });
     assert.equal(quote(parcel), 250 + 300);
   });
+});
+
+describe("validateNewParcel", () => {
+  it("accepts a valid parcel", () => {
+    const result = validateNewParcel({ destination: "Bristol", weightKg: 1.5 });
+    assert.equal(result.weightKg, 1.5);
+  });
+
+  it("rejects when weightKg is missing", () => {
+    assert.throws(
+      () => validateNewParcel({ destination: "Bristol" }),
+      (err: unknown) => err instanceof ValidationError && /required/.test(err.message),
+    );
+  });
+
+  it("rejects when weightKg is a string", () => {
+    assert.throws(
+      () => validateNewParcel({ destination: "Bristol", weightKg: "heavy" }),
+      (err: unknown) => err instanceof ValidationError && /number/.test(err.message),
+    );
+  });
+
+  it("rejects when weightKg is NaN", () => {
+    assert.throws(
+      () => validateNewParcel({ destination: "Bristol", weightKg: NaN }),
+      (err: unknown) => err instanceof ValidationError && /number/.test(err.message),
+    );
+  });
+
+  it("rejects when weightKg is zero", () => {
+    assert.throws(
+      () => validateNewParcel({ destination: "Bristol", weightKg: 0 }),
+      (err: unknown) => err instanceof ValidationError && /greater than zero/.test(err.message),
+    );
+  });
+
+  it("rejects when weightKg is negative", () => {
+    assert.throws(
+      () => validateNewParcel({ destination: "Bristol", weightKg: -3 }),
+      (err: unknown) => err instanceof ValidationError && /greater than zero/.test(err.message),
+    );
+  });
+});
+
+// Helper: start the server on an OS-assigned port, run fn, then close it.
+function withServer(fn: (baseUrl: string) => Promise<void>): Promise<void> {
+  return new Promise((resolve, reject) => {
+    server.listen(0, "127.0.0.1", async () => {
+      const addr = server.address() as { port: number };
+      const baseUrl = `http://127.0.0.1:${addr.port}`;
+      try {
+        await fn(baseUrl);
+        resolve();
+      } catch (err) {
+        reject(err);
+      } finally {
+        server.close();
+      }
+    });
+  });
+}
+
+async function post(url: string, body: unknown): Promise<{ status: number; body: Record<string, unknown> }> {
+  const payload = JSON.stringify(body);
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const http = require("node:http") as typeof import("node:http");
+  return new Promise((resolve, reject) => {
+    const req = http.request(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(payload) },
+    }, (res: IncomingMessage) => {
+      let raw = "";
+      res.on("data", (chunk: Buffer) => (raw += chunk));
+      res.on("end", () => resolve({ status: res.statusCode ?? 0, body: JSON.parse(raw) }));
+    });
+    req.on("error", reject);
+    req.write(payload);
+    req.end();
+  });
+}
+
+describe("POST /parcels weightKg validation (HTTP)", () => {
+  it("returns 201 for a valid parcel", () =>
+    withServer(async (base) => {
+      const res = await post(`${base}/parcels`, { destination: "Norwich", weightKg: 2 });
+      assert.equal(res.status, 201);
+      assert.ok((res.body as any).parcel.id);
+    }),
+  );
+
+  it("returns 400 when weightKg is missing", () =>
+    withServer(async (base) => {
+      const res = await post(`${base}/parcels`, { destination: "Norwich" });
+      assert.equal(res.status, 400);
+      assert.match((res.body as any).error, /required/);
+    }),
+  );
+
+  it("returns 400 when weightKg is a string", () =>
+    withServer(async (base) => {
+      const res = await post(`${base}/parcels`, { destination: "Norwich", weightKg: "heavy" });
+      assert.equal(res.status, 400);
+      assert.match((res.body as any).error, /number/);
+    }),
+  );
+
+  it("returns 400 when weightKg is zero", () =>
+    withServer(async (base) => {
+      const res = await post(`${base}/parcels`, { destination: "Norwich", weightKg: 0 });
+      assert.equal(res.status, 400);
+      assert.match((res.body as any).error, /greater than zero/);
+    }),
+  );
+
+  it("returns 400 when weightKg is negative", () =>
+    withServer(async (base) => {
+      const res = await post(`${base}/parcels`, { destination: "Norwich", weightKg: -1 });
+      assert.equal(res.status, 400);
+      assert.match((res.body as any).error, /greater than zero/);
+    }),
+  );
 });
