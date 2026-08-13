@@ -1,3 +1,4 @@
+// In-memory parcel store with CRUD helpers and a sequential ID generator.
 import type { Parcel } from "./types";
 
 /**
