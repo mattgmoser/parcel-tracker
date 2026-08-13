@@ -1,3 +1,4 @@
+// This file defines the shared TypeScript types and interfaces used across the application.
 export type ParcelStatus = "accepted" | "in_transit" | "delivered";
 
 export interface Parcel {
