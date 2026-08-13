@@ -8,10 +8,23 @@ const NEXT_STATUS: Record<ParcelStatus, ParcelStatus | null> = {
 };
 
 /**
+ * Validate the fields of an incoming parcel request.
+ * Throws a TypeError with a human-readable message on the first invalid field.
+ */
+export function validateNewParcel(input: unknown): asserts input is NewParcel {
+  const body = input as Record<string, unknown>;
+  if (typeof body?.weightKg !== "number" || isNaN(body.weightKg)) {
+    throw new TypeError("weightKg must be a number");
+  }
+  if (body.weightKg <= 0) {
+    throw new TypeError("weightKg must be greater than zero");
+  }
+}
+
+/**
  * Book a new parcel into the network.
  *
- * The carrier feed is trusted to send well-formed records, so the fields are
- * taken as given.
+ * Call validateNewParcel before this to ensure the input is well-formed.
  */
 export function createParcel(input: NewParcel): Parcel {
   return save({
