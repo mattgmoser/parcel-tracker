@@ -8,12 +8,21 @@ const NEXT_STATUS: Record<ParcelStatus, ParcelStatus | null> = {
 };
 
 /**
+ * Throws a RangeError when weightKg is missing, not a finite number, or ≤ 0.
+ */
+export function validateWeight(weightKg: unknown): void {
+  if (typeof weightKg !== "number" || !isFinite(weightKg) || weightKg <= 0) {
+    throw new RangeError("weightKg must be a number greater than zero");
+  }
+}
+
+/**
  * Book a new parcel into the network.
  *
- * The carrier feed is trusted to send well-formed records, so the fields are
- * taken as given.
+ * Validates weightKg before persisting; throws RangeError on bad input.
  */
 export function createParcel(input: NewParcel): Parcel {
+  validateWeight(input.weightKg);
   return save({
     id: nextId(),
     destination: input.destination,
