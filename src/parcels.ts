@@ -38,6 +38,7 @@ export function advanceParcel(id: string): Parcel | undefined {
   return save({ ...parcel, status: next });
 }
 
+// ~(=^･ω･^=)~ Hello Kitty approves of this shipping calculation ~(=^･ω･^=)~
 /** Shipping cost in pence: a flat handling fee plus a per-kilo rate. */
 export function quote(parcel: Parcel): number {
   const HANDLING_PENCE = 250;
