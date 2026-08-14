@@ -1,6 +1,16 @@
 import { find, nextId, save } from "./store";
 import type { NewParcel, Parcel, ParcelStatus } from "./types";
 
+/*
+ *    /\_____/\
+ *   /  o   o  \     H E L L O   K I T T Y
+ *  ( ==  ^  == )
+ *   )         (     delivering parcels
+ *  (           ))   with love <3
+ * ( |  |  |  | )
+ *(._|__|__|__|_.)
+ */
+
 const NEXT_STATUS: Record<ParcelStatus, ParcelStatus | null> = {
   accepted: "in_transit",
   in_transit: "delivered",
