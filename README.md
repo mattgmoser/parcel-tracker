@@ -38,6 +38,10 @@ src/server.ts    the HTTP surface
 test/            node:test suites
 ```
 
+## Notes
+
+The in-memory store is not persisted; restarting the process clears all parcel records.
+
 ## Known gap
 
 `POST /parcels` takes `destination` and `weightKg` straight from the request body. The carrier feed
