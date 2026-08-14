@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
-import { advanceParcel, createParcel, getParcel, quote } from "../src/parcels";
+import { advanceParcel, createParcel, getParcel, quote, ValidationError } from "../src/parcels";
 import { reset } from "../src/store";
 
 beforeEach(() => reset());
@@ -17,6 +17,41 @@ describe("createParcel", () => {
     createParcel({ destination: "Leeds", weightKg: 1 });
     const second = createParcel({ destination: "Bath", weightKg: 1 });
     assert.equal(second.id, "PT-000002");
+  });
+
+  describe("weightKg validation", () => {
+    it("rejects a missing weightKg", () => {
+      assert.throws(
+        () => createParcel({ destination: "Bristol" } as any),
+        ValidationError,
+      );
+    });
+
+    it("rejects a non-numeric weightKg", () => {
+      assert.throws(
+        () => createParcel({ destination: "Bristol", weightKg: "heavy" as any }),
+        ValidationError,
+      );
+    });
+
+    it("rejects zero", () => {
+      assert.throws(
+        () => createParcel({ destination: "Bristol", weightKg: 0 }),
+        ValidationError,
+      );
+    });
+
+    it("rejects a negative weight", () => {
+      assert.throws(
+        () => createParcel({ destination: "Bristol", weightKg: -1 }),
+        ValidationError,
+      );
+    });
+
+    it("accepts a positive weight", () => {
+      const parcel = createParcel({ destination: "Bristol", weightKg: 0.1 });
+      assert.equal(parcel.weightKg, 0.1);
+    });
   });
 });
 
