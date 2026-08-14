@@ -22,9 +22,21 @@ export const server = createServer((req, res) => {
     let body = "";
     req.on("data", (chunk) => (body += chunk));
     req.on("end", () => {
-      const input = JSON.parse(body || "{}");
-      const parcel = createParcel(input);
-      json(res, 201, { parcel, quotePence: quote(parcel) });
+      let input: Record<string, unknown>;
+      try {
+        input = JSON.parse(body || "{}");
+      } catch {
+        return json(res, 400, { error: "Invalid JSON" });
+      }
+      try {
+        const parcel = createParcel(input as never);
+        json(res, 201, { parcel, quotePence: quote(parcel) });
+      } catch (err) {
+        if (err instanceof RangeError) {
+          return json(res, 400, { error: err.message });
+        }
+        throw err;
+      }
     });
     return;
   }
