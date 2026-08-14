@@ -27,7 +27,10 @@ export function all(): Parcel[] {
   return [...parcels.values()];
 }
 
-/** Test helper: drop everything between cases. */
+/**
+ * Test helper: drop everything between cases.
+ * (Just like a real courier loses your parcel, but on purpose this time.)
+ */
 export function reset(): void {
   parcels.clear();
   counter = 0;
