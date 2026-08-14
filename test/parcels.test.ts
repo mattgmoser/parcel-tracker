@@ -18,6 +18,34 @@ describe("createParcel", () => {
     const second = createParcel({ destination: "Bath", weightKg: 1 });
     assert.equal(second.id, "PT-000002");
   });
+
+  it("rejects a parcel with zero weight", () => {
+    assert.throws(
+      () => createParcel({ destination: "Bristol", weightKg: 0 }),
+      { name: "RangeError", message: "weightKg must be a number greater than zero" },
+    );
+  });
+
+  it("rejects a parcel with negative weight", () => {
+    assert.throws(
+      () => createParcel({ destination: "Bristol", weightKg: -1 }),
+      { name: "RangeError", message: "weightKg must be a number greater than zero" },
+    );
+  });
+
+  it("rejects a parcel when weightKg is missing", () => {
+    assert.throws(
+      () => createParcel({ destination: "Bristol" } as any),
+      { name: "RangeError", message: "weightKg must be a number greater than zero" },
+    );
+  });
+
+  it("rejects a parcel when weightKg is not a number", () => {
+    assert.throws(
+      () => createParcel({ destination: "Bristol", weightKg: "heavy" } as any),
+      { name: "RangeError", message: "weightKg must be a number greater than zero" },
+    );
+  });
 });
 
 describe("getParcel", () => {
