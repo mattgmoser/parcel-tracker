@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
+import { IncomingMessage } from "node:http";
 import { beforeEach, describe, it } from "node:test";
 import { advanceParcel, createParcel, getParcel, quote } from "../src/parcels";
+import { server } from "../src/server";
 import { reset } from "../src/store";
 
 beforeEach(() => reset());
@@ -50,5 +52,96 @@ describe("quote", () => {
   it("charges handling plus a per-kilo rate", () => {
     const parcel = createParcel({ destination: "Derby", weightKg: 2.5 });
     assert.equal(quote(parcel), 250 + 300);
+  });
+});
+
+describe("createParcel – weightKg validation", () => {
+  it("throws when weightKg is missing", () => {
+    assert.throws(
+      () => createParcel({ destination: "Bristol" } as never),
+      RangeError,
+    );
+  });
+
+  it("throws when weightKg is not a number", () => {
+    assert.throws(
+      () => createParcel({ destination: "Bristol", weightKg: "heavy" as never }),
+      RangeError,
+    );
+  });
+
+  it("throws when weightKg is zero", () => {
+    assert.throws(
+      () => createParcel({ destination: "Bristol", weightKg: 0 }),
+      RangeError,
+    );
+  });
+
+  it("throws when weightKg is negative", () => {
+    assert.throws(
+      () => createParcel({ destination: "Bristol", weightKg: -1 }),
+      RangeError,
+    );
+  });
+});
+
+// Helper: send a POST /parcels request through the server and collect the
+// parsed JSON response, closing the server afterwards.
+function postParcel(body: unknown): Promise<{ status: number; body: Record<string, unknown> }> {
+  return new Promise((resolve, reject) => {
+    server.listen(0, "127.0.0.1", () => {
+      const addr = server.address() as { port: number };
+      const payload = JSON.stringify(body);
+      const req = require("node:http").request(
+        {
+          hostname: "127.0.0.1",
+          port: addr.port,
+          path: "/parcels",
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(payload) },
+        },
+        (res: IncomingMessage) => {
+          let data = "";
+          res.on("data", (chunk: Buffer) => (data += chunk));
+          res.on("end", () => {
+            server.close();
+            resolve({ status: res.statusCode ?? 0, body: JSON.parse(data) });
+          });
+        },
+      );
+      req.on("error", (err: Error) => { server.close(); reject(err); });
+      req.end(payload);
+    });
+  });
+}
+
+describe("POST /parcels – weightKg validation", () => {
+  it("returns 400 when weightKg is missing", async () => {
+    const res = await postParcel({ destination: "Bristol" });
+    assert.equal(res.status, 400);
+    assert.match(res.body.error as string, /weightKg/);
+  });
+
+  it("returns 400 when weightKg is not a number", async () => {
+    const res = await postParcel({ destination: "Bristol", weightKg: "heavy" });
+    assert.equal(res.status, 400);
+    assert.match(res.body.error as string, /weightKg/);
+  });
+
+  it("returns 400 when weightKg is zero", async () => {
+    const res = await postParcel({ destination: "Bristol", weightKg: 0 });
+    assert.equal(res.status, 400);
+    assert.match(res.body.error as string, /weightKg/);
+  });
+
+  it("returns 400 when weightKg is negative", async () => {
+    const res = await postParcel({ destination: "Bristol", weightKg: -5 });
+    assert.equal(res.status, 400);
+    assert.match(res.body.error as string, /weightKg/);
+  });
+
+  it("returns 201 when weightKg is a positive number", async () => {
+    const res = await postParcel({ destination: "Bristol", weightKg: 3 });
+    assert.equal(res.status, 201);
   });
 });
