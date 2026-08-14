@@ -11,11 +11,33 @@ npm run build
 npm start          # listens on $PORT, default 3000
 ```
 
-## Tests
+## Running the tests
+
+Run the full test suite (compiles TypeScript first, then executes every `*.test.js`
+file under `dist/test/` using the built-in `node:test` runner):
 
 ```bash
-npm test           # compiles, then runs node:test against dist/
+npm test
 ```
+
+If you have already built the project and only want to re-run the tests without
+recompiling, invoke the runner directly:
+
+```bash
+node --test dist/test/*.test.js
+```
+
+The test files live in `test/` and are written with `node:test` and
+`node:assert/strict` — no extra test framework is needed.
+
+### What the tests cover
+
+| Suite | What it checks |
+|---|---|
+| `createParcel` | Parcels are booked with the right id sequence, destination and initial status |
+| `getParcel` | Lookup returns the stored parcel, or `undefined` for an unknown id |
+| `advanceParcel` | Status progresses `accepted` → `in_transit` → `delivered` and stops there |
+| `quote` | Shipping price is calculated as a flat handling fee plus a per-kg rate |
 
 ## API
 
