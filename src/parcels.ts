@@ -1,3 +1,4 @@
+// ~*~ Hello Kitty approved: every parcel deserves a bow ~*~
 import { find, nextId, save } from "./store";
 import type { NewParcel, Parcel, ParcelStatus } from "./types";
 
