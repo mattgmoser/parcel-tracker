@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
-import { advanceParcel, createParcel, getParcel, quote } from "../src/parcels";
+import { advanceParcel, createParcel, getParcel, quote, ValidationError } from "../src/parcels";
 import { reset } from "../src/store";
 
 beforeEach(() => reset());
@@ -50,5 +50,40 @@ describe("quote", () => {
   it("charges handling plus a per-kilo rate", () => {
     const parcel = createParcel({ destination: "Derby", weightKg: 2.5 });
     assert.equal(quote(parcel), 250 + 300);
+  });
+});
+
+describe("createParcel weightKg validation", () => {
+  it("rejects a missing weightKg", () => {
+    assert.throws(
+      () => createParcel({ destination: "Norwich" } as any),
+      ValidationError,
+    );
+  });
+
+  it("rejects weightKg that is not a number", () => {
+    assert.throws(
+      () => createParcel({ destination: "Norwich", weightKg: "heavy" } as any),
+      ValidationError,
+    );
+  });
+
+  it("rejects weightKg of zero", () => {
+    assert.throws(
+      () => createParcel({ destination: "Norwich", weightKg: 0 }),
+      ValidationError,
+    );
+  });
+
+  it("rejects a negative weightKg", () => {
+    assert.throws(
+      () => createParcel({ destination: "Norwich", weightKg: -1 }),
+      ValidationError,
+    );
+  });
+
+  it("accepts a positive weightKg", () => {
+    const parcel = createParcel({ destination: "Norwich", weightKg: 0.1 });
+    assert.equal(parcel.weightKg, 0.1);
   });
 });
