@@ -38,6 +38,10 @@ src/server.ts    the HTTP surface
 test/            node:test suites
 ```
 
+## Remarks
+
+The service is intentionally minimal: there is no persistence layer, so all parcel data is lost when the process restarts.
+
 ## Known gap
 
 `POST /parcels` takes `destination` and `weightKg` straight from the request body. The carrier feed
