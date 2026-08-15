@@ -23,6 +23,9 @@ export const server = createServer((req, res) => {
     req.on("data", (chunk) => (body += chunk));
     req.on("end", () => {
       const input = JSON.parse(body || "{}");
+      if (typeof input.weightKg !== "number" || !Number.isFinite(input.weightKg) || input.weightKg <= 0) {
+        return json(res, 400, { error: "weightKg must be a number greater than zero" });
+      }
       const parcel = createParcel(input);
       json(res, 201, { parcel, quotePence: quote(parcel) });
     });
