@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
-import { advanceParcel, createParcel, getParcel, quote } from "../src/parcels";
+import { advanceParcel, createParcel, getParcel, quote, ValidationError } from "../src/parcels";
 import { reset } from "../src/store";
 
 beforeEach(() => reset());
@@ -17,6 +17,34 @@ describe("createParcel", () => {
     createParcel({ destination: "Leeds", weightKg: 1 });
     const second = createParcel({ destination: "Bath", weightKg: 1 });
     assert.equal(second.id, "PT-000002");
+  });
+
+  it("rejects a parcel when weightKg is missing", () => {
+    assert.throws(
+      () => createParcel({ destination: "York" } as never),
+      ValidationError,
+    );
+  });
+
+  it("rejects a parcel when weightKg is not a number", () => {
+    assert.throws(
+      () => createParcel({ destination: "York", weightKg: "heavy" } as never),
+      ValidationError,
+    );
+  });
+
+  it("rejects a parcel when weightKg is zero", () => {
+    assert.throws(
+      () => createParcel({ destination: "York", weightKg: 0 }),
+      ValidationError,
+    );
+  });
+
+  it("rejects a parcel when weightKg is negative", () => {
+    assert.throws(
+      () => createParcel({ destination: "York", weightKg: -1 }),
+      ValidationError,
+    );
   });
 });
 
